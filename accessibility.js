@@ -576,14 +576,36 @@ function moveGuide(e) {
 
 function applyFontSize(n) {
   n = Math.max(-2, Math.min(4, n));
-  // remove old
-  for (let i = -2; i <= 4; i++) document.body.classList.remove('a11y-fs-' + i);
   A11Y.fontSize = n;
-  if (n !== 0) document.body.classList.add('a11y-fs-' + n);
-  const el = document.getElementById('fs-range');
-  if (el) el.value = n;
-  const v = document.getElementById('fsVal');
-  if (v) v.textContent = (n >= 0 ? '+' : '') + n;
+
+  // zoom multiplier per step
+  const zoomMap = { '-2': 0.82, '-1': 0.90, 0: 1, 1: 1.10, 2: 1.20, 3: 1.32, 4: 1.46 };
+  const z = zoomMap[n] || 1;
+
+  // 1. Set html font-size (scales rem units)
+  document.documentElement.style.fontSize = (16 * z) + 'px';
+
+  // 2. Apply zoom to main content containers (scales ALL px-based elements too)
+  const targets = document.querySelectorAll(
+    'header, .container, .lesson-wrap, .task-grid, .blog-grid, ' +
+    '.reviews-wrap, .test-wrap, .faq-wrap, .about-wrap, ' +
+    '.lesson-box, .kmj-paper, main'
+  );
+  targets.forEach(el => {
+    if (el && !el.closest('#a11yPanel')) {
+      el.style.zoom = z;
+    }
+  });
+
+  // 3. Also scale navbar text
+  const navbar = document.querySelector('.navbar');
+  if (navbar) navbar.style.zoom = z;
+
+  // Update UI controls
+  const range = document.getElementById('fs-range');
+  if (range) range.value = n;
+  const val = document.getElementById('fsVal');
+  if (val) val.textContent = (n >= 0 ? '+' : '') + n;
   saveState();
 }
 
@@ -890,10 +912,18 @@ function resetAll() {
     pomodoroState:'idle', pomodoroLeft:25*60,
   });
 
+  // Reset font size & zoom
+  document.documentElement.style.fontSize = '16px';
+  document.querySelectorAll('header, .container, .lesson-wrap, .task-grid, .blog-grid, .reviews-wrap, .test-wrap, .faq-wrap, .about-wrap, .lesson-box, .kmj-paper, main').forEach(el => { el.style.zoom = ''; });
+  const nb = document.querySelector('.navbar');
+  if (nb) nb.style.zoom = '';
+
   // Reset all toggles
   document.querySelectorAll('.a11y-toggle input').forEach(t => t.checked = false);
-  document.getElementById('fs-range').value = 0;
-  document.getElementById('fsVal').textContent = '+0';
+  const fr = document.getElementById('fs-range');
+  if (fr) fr.value = 0;
+  const fv = document.getElementById('fsVal');
+  if (fv) fv.textContent = '+0';
   updatePomoDisplay();
   saveState();
 }
